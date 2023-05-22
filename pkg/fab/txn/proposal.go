@@ -8,6 +8,7 @@ package txn
 
 import (
 	reqContext "context"
+	"fmt"
 	"sync"
 
 	"github.com/golang/protobuf/proto"
@@ -100,6 +101,8 @@ func SendProposal(reqCtx reqContext.Context, proposal *fab.TransactionProposal, 
 	if !ok {
 		return nil, errors.New("failed get client context from reqContext for signProposal")
 	}
+
+	fmt.Printf("SendProposal: %v\n", proposal.Proposal)
 	signedProposal, err := signProposal(ctx, proposal.Proposal)
 	if err != nil {
 		return nil, errors.WithMessage(err, "sign proposal failed")

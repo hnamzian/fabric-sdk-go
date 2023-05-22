@@ -7,6 +7,13 @@ SPDX-License-Identifier: Apache-2.0
 package signingmgr
 
 import (
+	"bytes"
+	"encoding/json"
+	"encoding/hex"
+	"fmt"
+	"io"
+	"net/http"
+
 	"github.com/hyperledger/fabric-sdk-go/pkg/common/providers/core"
 
 	"github.com/hyperledger/fabric-sdk-go/pkg/core/cryptosuite"
@@ -28,6 +35,60 @@ func New(cryptoProvider core.CryptoSuite) (*SigningManager, error) {
 	return &SigningManager{cryptoProvider: cryptoProvider, hashOpts: cryptosuite.GetSHAOpts()}, nil
 }
 
+type RemoteSignatureRequest struct {
+	Data string `json:"data"`
+}
+type RemoteSignatureResponse struct {
+	Signature string `json:"signature"`
+}
+
+func Sign(ski []byte, digest []byte) (signature []byte, err error) {
+	// POST /fabric-cryptosuit/:enrollmentID/key
+	keygen_url := fmt.Sprintf("http://localhost:4000/fabric-cryptosuit/key/%x/sign", string(ski))
+	fmt.Printf("keygen_url: %s\n", keygen_url)
+
+	sigReq := &RemoteSignatureRequest{
+		Data: hex.EncodeToString(digest),
+	}
+	body, err := json.Marshal(sigReq)
+	fmt.Printf("body: %s\n", body)
+
+	// Create a HTTP post request
+	postReq, err := http.NewRequest("POST", keygen_url, bytes.NewBuffer(body))
+	if err != nil {
+		return nil, err
+	}
+
+	// Add headers
+	postReq.Header.Add("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(postReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	result, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	signatureResponse := &RemoteSignatureResponse{}
+	err = json.Unmarshal(result, signatureResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	// convert hex string to hex
+	sighex, err := hex.DecodeString(signatureResponse.Signature)
+	if err != nil {
+		fmt.Println("Error decoding hex string:", err)
+		return
+	}
+
+	return []byte(sighex), nil
+}
+
 // Sign will sign the given object using provided key
 func (mgr *SigningManager) Sign(object []byte, key core.Key) ([]byte, error) {
 
@@ -43,7 +104,10 @@ func (mgr *SigningManager) Sign(object []byte, key core.Key) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	signature, err := mgr.cryptoProvider.Sign(key, digest, mgr.signerOpts)
+	// signature, err := mgr.cryptoProvider.Sign(key, digest, mgr.signerOpts)
+	signature, err := Sign(key.SKI(), digest)
+	fmt.Printf("signature: %x\n", signature)
+	fmt.Printf("digest: %x\n", digest)
 	if err != nil {
 		return nil, err
 	}
