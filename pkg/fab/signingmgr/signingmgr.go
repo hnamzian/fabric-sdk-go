@@ -44,7 +44,7 @@ type RemoteSignatureResponse struct {
 
 func Sign(ski []byte, digest []byte) (signature []byte, err error) {
 	// POST /fabric-cryptosuit/:enrollmentID/key
-	keygen_url := fmt.Sprintf("http://localhost:4000/fabric-cryptosuit/key/%x/sign", string(ski))
+	keygen_url := fmt.Sprintf("http://oneof_wallet:4000/fabric-cryptosuit/key/%x/sign", string(ski))
 	fmt.Printf("keygen_url: %s\n", keygen_url)
 
 	sigReq := &RemoteSignatureRequest{
