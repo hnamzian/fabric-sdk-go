@@ -26,6 +26,7 @@ import (
 	"github.com/hyperledger/fabric-sdk-go/pkg/common/providers/core"
 	"github.com/hyperledger/fabric-sdk-go/pkg/common/providers/fab"
 	mspProvider "github.com/hyperledger/fabric-sdk-go/pkg/common/providers/msp"
+	commonMspProvider "github.com/hyperledger/fabric-sdk-go/pkg/common/providers/msp"
 	"github.com/hyperledger/fabric-sdk-go/pkg/core/cryptosuite"
 	"github.com/hyperledger/fabric-sdk-go/pkg/fabsdk"
 	"github.com/hyperledger/fabric-sdk-go/pkg/fabsdk/api"
@@ -211,6 +212,15 @@ func WithIdentity(wallet wallet, label string) IdentityOption {
 		}
 
 		gw.options.Identity = wid
+		gw.mspfactory = &walletmsp{}
+
+		return nil
+	}
+}
+
+func WithSigningIdentity(id commonMspProvider.SigningIdentity) IdentityOption {
+	return func(gw *Gateway) error {
+		gw.options.Identity = id
 		gw.mspfactory = &walletmsp{}
 
 		return nil
